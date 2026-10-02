@@ -1,0 +1,38 @@
+Assignment 3 - Part B working notes
+
+B1. Data exploration
+Coding and factor levels:
+Four-way table:
+Y-by-X tables and proportions:
+Which attribute appears most related, and what evidence supports that?
+
+B2. Naive Bayes
+DAG and joint factorization:
+Parameter vectors and their category order:
+C_i, Q_i, and prior hyperparameters:
+Counts and complete posterior Dirichlet vectors:
+High/low/high customer - unnormalized weights for A, B, C:
+Normalizing constant and final probabilities:
+Agreement with predict and differences from cpquery:
+
+B3. Sensitivity
+Probability table at alpha = 1, 12, 100, 1000:
+Explanation using posterior means:
+
+B4. Five candidate models
+DAGs, model strings, factorizations and parent configurations:
+Complete posterior vectors for one non-naive model:
+Three prediction methods - what information is used?
+All eight profiles - probabilities and predicted classes:
+Ties, near ties, and selected tie rule:
+Confusion matrices (state row/column meaning) and accuracy:
+Log marginal likelihoods and one manually verified node:
+Posterior model probabilities under equal priors:
+Why model evidence and classification performance may differ:
+
+Interpretation (at most one page in the final write-up)
+What is supported about the attributes?
+What does this imply for providers A and C?
+What does the analysis not establish?
+
+Questions for the group / instructor:
