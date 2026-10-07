@@ -1,0 +1,226 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=0.8in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,booktabs,tabularx}
+\usepackage{xcolor,listings}
+\usepackage[hidelinks]{hyperref}
+\usepackage{enumitem}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\lstset{language=R,basicstyle=\ttfamily\footnotesize,breaklines=true,
+  columns=fullflexible,keepspaces=true,showstringspaces=false,
+  backgroundcolor=\color{gray!7},frame=single,rulecolor=\color{gray!25},
+  aboveskip=5pt,belowskip=5pt,xleftmargin=4pt,xrightmargin=4pt}
+\newcommand{\code}[1]{\texttt{#1}}
+\begin{document}
+\begin{center}
+{\Large\bfseries Assignment 3: Part A}\\[4pt]
+{\large Guide to the \texttt{bnlearn} Functions}
+\end{center}
+
+The examples assume that \code{dat} contains the four factor variables
+\code{Y}, \code{X1}, \code{X2}, and \code{X3}, and that
+\code{new\_customer} contains predictor values with the same factor levels.
+Report the installed version using \code{packageVersion("bnlearn")}.
+Slide references below refer to Lecture Set 4.
+
+\section*{A1. DAGs and factorization \normalfont\small (slides 15--19, 23)}
+A Bayesian network factorizes a joint distribution as
+\[
+ p(y_1,\ldots,y_I)=\prod_{i=1}^{I}p(y_i\mid\Pi_i),
+\]
+where $\Pi_i$ is the parent set of node $i$.
+\code{model2network()} converts a model string into a DAG. Each bracket
+specifies a node and its parents: \code{[Y]} denotes a root node, while
+\code{[X2|Y:X1]} corresponds to the factor $p(x_2\mid y,x_1)$.
+The five candidate networks are:
+\begin{lstlisting}
+M1 <- model2network("[Y][X1|Y][X2|Y:X1][X3|Y:X1:X2]")
+M2 <- model2network("[Y][X1|Y][X2|Y][X3|Y]")
+M3 <- model2network("[Y][X1|Y][X2|Y:X1][X3|Y]")
+M4 <- model2network("[Y][X1|Y][X2|Y][X3|Y:X1]")
+M5 <- model2network("[Y][X1|Y][X2|Y][X3|Y:X2]")
+\end{lstlisting}
+For example, M3 represents
+$p(y)p(x_1\mid y)p(x_2\mid y,x_1)p(x_3\mid y)$.
+\code{modelstring()} performs the reverse conversion, returning the
+string representation of a supplied network.
+\begin{lstlisting}
+modelstring(M3)
+\end{lstlisting}
+\code{naive.bayes()} constructs a classifier whose class node is the parent
+of every predictor. The argument \code{training = "Y"} identifies the
+class variable; the data supply the variable names and categories.
+\begin{lstlisting}
+nb <- naive.bayes(dat, training = "Y")
+\end{lstlisting}
+Its DAG is the same as M2: the attributes are mutually independent given Y.
+The returned object also has a specialized classifier class used by
+\code{predict()}.
+
+\code{nparams()} counts free parameters. For discrete networks, the count
+is $\sum_i Q_i(C_i-1)$, where $C_i$ is the number of states of node $i$
+and $Q_i$ is the number of parent configurations. The \code{data} argument
+provides category information for an unfitted network.
+\begin{lstlisting}
+nparams(M2, data = dat)  # 2 + 3 + 3 + 3 = 11
+\end{lstlisting}
+
+\section*{A2. Parameter learning \normalfont\small (slides 29--33)}
+\code{bn.fit()} estimates local distributions given a network and its data.
+With \code{method = "mle"}, it returns
+\[
+ \widehat\theta_{ijk}=\frac{N_{ijk}}{N_{ij}},\qquad
+ N_{ij}=\sum_k N_{ijk},
+\]
+where $N_{ijk}$ counts observations in state $k$ under parent configuration
+$j$. For example, $\widehat P(X_1=\mathrm{high}\mid Y=A)=130/333=0.3904$.
+\begin{lstlisting}
+fit_mle <- bn.fit(M2, data = dat, method = "mle")
+\end{lstlisting}
+
+\newpage
+With \code{method = "bayes"}, \code{iss} is the imaginary sample size,
+corresponding to the lecture's global precision $\alpha$. The uniform BDe
+prior assigns
+\[
+ \alpha_{ijk}=\frac{\alpha}{C_iQ_i},\qquad
+ \alpha_{ij}=\sum_k\alpha_{ijk}=\frac{\alpha}{Q_i}.
+\]
+The posterior and its mean are
+\begin{align*}
+ \boldsymbol\theta_{ij}\mid D
+ &\sim\operatorname{Dir}(\alpha_{ij1}+N_{ij1},\ldots,
+                         \alpha_{ijC_i}+N_{ijC_i}),\\
+ E(\theta_{ijk}\mid D)
+ &=\frac{\alpha_{ijk}+N_{ijk}}{\alpha_{ij}+N_{ij}}.
+\end{align*}
+\begin{lstlisting}
+fit_M2 <- bn.fit(M2, data = dat, method = "bayes", iss = 12)
+\end{lstlisting}
+For $X_1\mid Y=A$, the prior is $\operatorname{Dir}(2,2)$ and the observed
+low/high counts are $(203,130)$. The posterior is
+$\operatorname{Dir}(205,132)$, giving a posterior mean high-satisfaction
+probability of $132/337=0.3917$.
+
+\code{coef()} extracts fitted probability tables. For a Bayesian fit,
+the entries are posterior means of $\theta_{ijk}$, not complete
+Dirichlet distributions.
+\begin{lstlisting}
+coef(fit_M2$X1)
+\end{lstlisting}
+
+\section*{A3. Classification probabilities \normalfont\small (slides 24, 36--38)}
+Classification requires $p(Y=j\mid x_1,x_2,x_3,D)$. Under naive Bayes,
+these probabilities are obtained by normalizing
+\[
+ p(Y=j\mid D)\prod_{\ell=1}^{3}p(x_\ell\mid Y=j,D)
+\]
+over the possible classes.
+
+\code{predict()} returns predicted classes. For an ordinary fitted network,
+\code{node = "Y"} specifies the target, \code{data} supplies the attribute
+evidence, and \code{prob = TRUE} attaches the classification probabilities
+as the \code{"prob"} attribute. Its matrix has one row per class and one
+column per observation.
+\begin{lstlisting}
+pred <- predict(fit_M2, node = "Y", data = new_customer,
+                method = "exact", prob = TRUE)
+attr(pred, "prob")
+\end{lstlisting}
+
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\toprule
+Method & Interpretation \\
+\midrule
+\code{parents} & Uses only the target node's parents. Since Y has no
+parents, it returns $p(Y\mid D)$ and ignores the attributes. It is
+unsuitable for the conditional classification required here. \\[4pt]
+\code{bayes-lw} & Uses likelihood-weighting simulation to incorporate
+attribute evidence. The argument \code{n} controls the simulation size;
+finite simulations introduce Monte Carlo error. \\[4pt]
+\code{exact} & Performs exact inference in the fitted discrete network
+using junction trees and belief propagation, without Monte Carlo
+approximation error. \\
+\bottomrule
+\end{tabularx}
+
+\begin{lstlisting}
+set.seed(20261002)
+predict(fit_M2, node = "Y", data = new_customer,
+        method = "bayes-lw", n = 100000, prob = TRUE)
+\end{lstlisting}
+Objects from \code{naive.bayes()} use a specialized prediction method.
+We use ordinary networks from \code{model2network()} when comparing
+the three methods above. Exact probabilities are deterministic, but
+the package may randomly break ties between equally probable classes.
+
+\newpage
+\code{cpquery()} estimates the probability of an \code{event} conditional
+on \code{evidence}. With \code{method = "ls"}, it simulates observations
+and estimates the event frequency among those matching the evidence.
+The argument \code{n} specifies the number of simulation draws.
+\begin{lstlisting}
+set.seed(20261002)
+cpquery(fit_M2, event = (Y == "A"),
+        evidence = (X1 == "high" & X2 == "low" & X3 == "high"),
+        method = "ls", n = 100000)
+\end{lstlisting}
+Both \code{cpquery()} and \code{bayes-lw} exhibit Monte Carlo variability.
+Resetting the seed makes a simulation reproducible; increasing its size
+generally reduces approximation error. Probabilities obtained from
+separate simulation calls need not sum to exactly one.
+
+\section*{A4. Marginal likelihood and model comparison
+\normalfont\small (slides 39--40)}
+\code{score()} evaluates a network using a specified criterion.
+With \code{type = "bde"} and \code{iss = 12}, it returns the log marginal
+likelihood under the specified Dirichlet prior:
+\[
+ \log p(D\mid M)
+ =\log\int p(D\mid\Theta,M)p(\Theta\mid M)\,d\Theta.
+\]
+\begin{lstlisting}
+score(M2, data = dat, type = "bde", iss = 12)
+\end{lstlisting}
+The local likelihood structure and independent Dirichlet priors allow the
+integral to factorize over nodes. Thus,
+\[
+ p(D\mid M)=\prod_i p(D_i\mid M),\qquad
+ \log p(D\mid M)=\sum_i\log p(D_i\mid M).
+\]
+The argument \code{by.node = TRUE} returns these individual contributions,
+whose sum is the whole-network score.
+\begin{lstlisting}
+score(M2, data = dat, type = "bde", iss = 12, by.node = TRUE)
+\end{lstlisting}
+With \code{type = "bic"}, the function instead returns
+\[
+ \mathrm{BIC}_{\texttt{bnlearn}}
+ =\log p(D\mid\widehat\Theta,M)-\frac{k}{2}\log n,
+\]
+where $k$ is the number of free parameters and $n$ is the sample size.
+Larger values are preferred in this convention.
+\begin{lstlisting}
+score(M2, data = dat, type = "bic")
+\end{lstlisting}
+BIC is a penalized likelihood criterion, not the exact Dirichlet log
+marginal likelihood. We use BDe scores to calculate posterior model
+probabilities. With equal model priors and $\ell_g=\log p(D\mid M_g)$,
+\[
+ P(M_g\mid D)=
+ \frac{\exp(\ell_g-\ell_{\max})}
+      {\sum_h\exp(\ell_h-\ell_{\max})}.
+\]
+Subtracting the maximum log score improves numerical stability without
+changing the resulting probabilities.
+
+\subsection*{References}
+Lecture Set 4, slides 15--40; installed \code{bnlearn} help pages for
+\code{model2network}, \code{modelstring}, \code{naive.bayes},
+\code{nparams}, \code{bn.fit}, \code{coef}, \code{predict},
+\code{cpquery}, and \code{score}. Online documentation:
+\url{https://www.bnlearn.com/documentation/}.
+
+\end{document}
