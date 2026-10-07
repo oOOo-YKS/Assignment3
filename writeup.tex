@@ -1,0 +1,533 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{amsmath}
+\usepackage{parskip}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{pdflscape}
+\usepackage{enumitem}
+
+\title{Stat-8289 HW2}
+\author{William Arliss}
+\date{}
+
+\renewcommand{\thesubsection}{\thesection.\alph{subsection}}
+
+\begin{document}
+
+\maketitle
+
+\section*{A}
+\label{sec:A}
+
+% (a) what it does, in one or two sentences of your own
+% (b) the arguments you used and what they mean
+% (c) the lecture concept and slide it corresponds to, with notation matched (which quantity in the software is Nijk, θijk, α or p(D | M)) 
+% (d) a one-line example from your own code
+
+model2network \begin{enumerate}[label=\alph*)]
+    \item Build a model from a configuration string.
+    \item 
+    \item 
+    \item dag\_mod = model2network("[Y][X1|Y][X2|Y][X3|Y]")
+\end{enumerate}
+modelstring \begin{enumerate}[label=\alph*)]
+    \item Represent a model as a configuration string.
+    \item 
+    \item 
+    \item modelstring(dag\_mod)
+\end{enumerate}
+naive.bayes \begin{enumerate}[label=\alph*)]
+    \item Create a Naive Bayes model with a provided data frame and target variable.
+    \item 
+    \item 
+    \item mod1 = naive.bayes(df, "Y")
+\end{enumerate}
+nparams \begin{enumerate}[label=\alph*)]
+    \item Show the total number of unknown parameters in a given model.
+    \item 
+    \item 
+    \item nparams(dag\_mod, df)
+\end{enumerate}
+bn.fit with method = "mle" and "bayes", argument iss; coef \begin{enumerate}[label=\alph*)]
+    \item Estimate/update the parameters of a model using provided data.
+    \item 
+    \item 
+    \item fit\_12 = bn.fit(mod1, df, method = "bayes", iss = 12)
+\end{enumerate}
+predict with arguments prob and method ("parents", "bayes-lw", "exact") \begin{enumerate}[label=\alph*)]
+    \item Predict the posterior distribution of the target variable/node given new data.
+    \item 
+    \item 
+    \item predict(fit\_12, data = new\_customer, prob = TRUE)
+\end{enumerate}
+cpquery \begin{enumerate}[label=\alph*)]
+    \item Use Monte Carlo simulation to predict the posterior distribution of the target variable/node given conditions.
+    \item 
+    \item 
+    \item cpquery(mod2, event = (Y == "A"), evidence = (X1 == "high" \& X2 == "low" \& X3 == "high"))
+\end{enumerate}
+score with type = "bde" and "bic"; arguments iss, by.node \begin{enumerate}[label=\alph*)]
+    \item Calculate the log likelihood of the model.
+    \item 
+    \item 
+    \item score(dag\_m1, data = df, type = "bde", iss = 12)
+\end{enumerate}
+
+\section*{B}
+\label{sec:B}
+
+\subsection*{B1}
+\label{sec:B:B1}
+
+% \begin{table}[ht]
+% \centering
+% \begin{tabular}{|ccc|rrr|}
+% \hline
+% Reputation & Price & Services & A & B & C \\
+% \hline
+% Low  & Low  & Low  & 113 & 98  & 73 \\
+% Low  & Low  & High & 35  & 18  & 17 \\
+% Low  & High & Low  & 19  & 8   & 7  \\
+% Low  & High & High & 36  & 9   & 15 \\
+% High & Low  & Low  & 21  & 60  & 5  \\
+% High & Low  & High & 27  & 66  & 9  \\
+% High & High & Low  & 8   & 8   & 6  \\
+% High & High & High & 74  & 113 & 32 \\
+% \hline
+% \end{tabular}
+% \caption{Joint frequencies of Reputation, Price, Services, and Preference}
+% \end{table}
+\begin{table}[ht]
+\centering
+\begin{tabular}{|ccc|ccc|}
+\toprule
+Reputation & Price & Services & \multicolumn{3}{c|}{Preference} \\
+% \cmidrule(lr){4-6}
+ & & & A & B & C \\
+\midrule
+\multirow{4}{*}{Low}
+    & \multirow{2}{*}{Low}
+        & Low  & 113 & 98  & 73 \\
+    & & High & 35  & 18  & 17 \\
+    & \multirow{2}{*}{High}
+        & Low  & 19  & 8   & 7  \\
+    & & High & 36  & 9   & 15 \\
+\midrule
+\multirow{4}{*}{High}
+    & \multirow{2}{*}{Low}
+        & Low  & 21  & 60  & 5  \\
+    & & High & 27  & 66  & 9  \\
+    & \multirow{2}{*}{High}
+        & Low  & 8   & 8   & 6  \\
+    & & High & 74  & 113 & 32 \\
+\bottomrule
+\end{tabular}
+\caption{Four-way contingency table of Reputation, Price, Services, with Preference}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\begin{minipage}{0.31\textwidth}
+\centering
+\begin{tabular}{|c|rrr|}
+\hline
+Reputation & A & B & C \\
+\hline
+Low  & 203 & 133 & 112 \\
+High & 130 & 247 & 52 \\
+\hline
+\end{tabular}
+\caption{Cross tabulation of Reputation and Preference}
+\end{minipage}
+\hfill
+\begin{minipage}{0.31\textwidth}
+\centering
+\begin{tabular}{|c|rrr|}
+\hline
+Price & A & B & C \\
+\hline
+Low  & 196 & 242 & 104 \\
+High & 137 & 138 & 60 \\
+\hline
+\end{tabular}
+\caption{Cross tabulation of Price and Preference}
+\end{minipage}
+\hfill
+\begin{minipage}{0.31\textwidth}
+\centering
+\begin{tabular}{|c|rrr|}
+\hline
+Services & A & B & C \\
+\hline
+Low  & 161 & 174 & 91 \\
+High & 172 & 206 & 73 \\
+\hline
+\end{tabular}
+\caption{Cross tabulation of Services and Preference}
+\end{minipage}
+\end{table}
+
+Provider reputation (X1) appears to be most related with preferred provider.
+
+\subsection*{B2}
+\label{sec:B:B2}
+
+\subsubsection*{B2.1}
+\label{sec:B:B2:1}
+
+\begin{figure}[h!]
+    \centering
+    \fbox{\includegraphics[width=0.5\linewidth]{dag1.png}}
+    \caption{Naive Bayes DAG representation}
+    \label{fig:dag1}
+\end{figure}
+
+Figure \ref{fig:dag1} shows \begin{align*}
+    P(Y|X_1,X_2,X_3) \propto P(Y) \, P(X_3|Y) \, P(X_2|Y) \, P(X_1|Y)
+\end{align*} and the parameters are \begin{align*}
+    X_1 :&\quad \theta_1 = (\theta_{11}, \theta_{12}, \theta_{13}) ,\, \theta_{11} = (\theta_{111}, \theta_{112}) ,\, \theta_{12} = (\theta_{121}, \theta_{122}) ,\, \theta_{13} = (\theta_{131}, \theta_{132}) \\
+    X_2 :&\quad \theta_2 = (\theta_{21}, \theta_{22}, \theta_{23}) ,\, \theta_{21} = (\theta_{211}, \theta_{212}) ,\, \theta_{22} = (\theta_{221}, \theta_{222}) ,\, \theta_{23} = (\theta_{231}, \theta_{232}) \\
+    X_3 :&\quad \theta_3 = (\theta_{31}, \theta_{32}, \theta_{33}) ,\, \theta_{31} = (\theta_{311}, \theta_{312}) ,\, \theta_{32} = (\theta_{321}, \theta_{322}) ,\, \theta_{33} = (\theta_{331}, \theta_{332}) \\
+    Y :&\quad \theta_{4} = (\theta_{411}, \theta_{412}, \theta_{413})
+\end{align*} where \begin{align*}
+    \theta_{111} &= P(X_1{=}1|Y{=}1) = P(X_1 {=} \text{low} | Y {=} \text{A}) \\
+    \theta_{112} &= P(X_1{=}2|Y{=}1) = P(X_1 {=} \text{high} | Y {=} \text{A}) \\
+    \theta_{121} &= P(X_1{=}1|Y{=}2) = P(X_1 {=} \text{low} | Y {=} \text{B}) \\
+    \theta_{122} &= P(X_1{=}2|Y{=}2) = P(X_1 {=} \text{high} | Y {=} \text{B}) \\
+    \theta_{131} &= P(X_1{=}1|Y{=}3) = P(X_1 {=} \text{low} | Y {=} \text{C}) \\
+    \theta_{132} &= P(X_1{=}2|Y{=}3) = P(X_1 {=} \text{high} | Y {=} \text{C}) \\
+    &\dots \\
+    \theta_{411} &= P(Y{=}1) = P(Y{=}A) \\
+    \theta_{412} &= P(Y{=}2) = P(Y{=}B) \\
+    \theta_{413} &= P(Y{=}3) = P(Y{=}C) \\
+\end{align*}
+
+\subsubsection*{B2.2}
+\label{sec:B:B2:2}
+
+Each $X_i$ has $Q_i=3$ parent configurations ($Y=$A, B, C) and $C_i=2$ states ($X_i=$low, high). The Dirichlet priors are \begin{align*}
+\theta_{11} &\sim \mathrm{Dir}\left(\frac{\alpha}{C_1 Q_1}, \frac{\alpha}{C_1 Q_1} \right) = \mathrm{Dir}\left(\frac{12}{2 \cdot 3}, \frac{12}{2 \cdot 3} \right) = \mathrm{Dir}(2,2) \\
+\theta_{12} &\sim \mathrm{Dir}\left(\frac{\alpha}{C_1 Q_1}, \frac{\alpha}{C_1 Q_1} \right) = \mathrm{Dir}\left(\frac{12}{2 \cdot 3}, \frac{12}{2 \cdot 3} \right) = \mathrm{Dir}(2,2) \\
+\theta_{13} &\sim \mathrm{Dir}\left(\frac{\alpha}{C_1 Q_1}, \frac{\alpha}{C_1 Q_1} \right) = \mathrm{Dir}\left(\frac{12}{2 \cdot 3}, \frac{12}{2 \cdot 3} \right) = \mathrm{Dir}(2,2) \\
+\theta_{21} &\sim \mathrm{Dir}\left(\frac{\alpha}{C_2 Q_2}, \frac{\alpha}{C_2 Q_2} \right) = \mathrm{Dir}\left(\frac{12}{2 \cdot 3}, \frac{12}{2 \cdot 3} \right) = \mathrm{Dir}(2,2) \\
+\theta_{22} &\sim \mathrm{Dir}\left(\frac{\alpha}{C_2 Q_2}, \frac{\alpha}{C_2 Q_2} \right) = \mathrm{Dir}\left(\frac{12}{2 \cdot 3}, \frac{12}{2 \cdot 3} \right) = \mathrm{Dir}(2,2) \\
+\theta_{23} &\sim \mathrm{Dir}\left(\frac{\alpha}{C_2 Q_2}, \frac{\alpha}{C_2 Q_2} \right) = \mathrm{Dir}\left(\frac{12}{2 \cdot 3}, \frac{12}{2 \cdot 3} \right) = \mathrm{Dir}(2,2) \\
+\theta_{31} &\sim \mathrm{Dir}\left(\frac{\alpha}{C_3 Q_3}, \frac{\alpha}{C_3 Q_3} \right) = \mathrm{Dir}\left(\frac{12}{2 \cdot 3}, \frac{12}{2 \cdot 3} \right) = \mathrm{Dir}(2,2) \\
+\theta_{32} &\sim \mathrm{Dir}\left(\frac{\alpha}{C_3 Q_3}, \frac{\alpha}{C_3 Q_3} \right) = \mathrm{Dir}\left(\frac{12}{2 \cdot 3}, \frac{12}{2 \cdot 3} \right) = \mathrm{Dir}(2,2) \\
+\theta_{33} &\sim \mathrm{Dir}\left(\frac{\alpha}{C_3 Q_3}, \frac{\alpha}{C_3 Q_3} \right) = \mathrm{Dir}\left(\frac{12}{2 \cdot 3}, \frac{12}{2 \cdot 3} \right) = \mathrm{Dir}(2,2) \\
+\theta_4 &\sim \mathrm{Dir}\left(\frac{\alpha}{C_4 Q_4}, \frac{\alpha}{C_4 Q_4}, \frac{\alpha}{C_4 Q_4} \right) = \mathrm{Dir}\left(\frac{12}{3 \cdot 1}, \frac{12}{3 \cdot 1}, \frac{12}{3 \cdot 1} \right) = \mathrm{Dir}(4,4,4)
+\end{align*}
+
+The posteriors are \begin{align*}
+\theta_{11}|D &\sim \mathrm{Dir}(2{+}203, 2{+}130) = \mathrm{Dir}(205, 132) \\
+\theta_{12}|D &\sim \mathrm{Dir}(2{+}133, 2{+}247) = \mathrm{Dir}(135, 249) \\
+\theta_{13}|D &\sim \mathrm{Dir}(2{+}112, 2{+}52) = \mathrm{Dir}(114, 54) \\
+\theta_{21}|D &\sim \mathrm{Dir}(2{+}196, 2{+}137) = \mathrm{Dir}(198, 139) \\
+\theta_{22}|D &\sim \mathrm{Dir}(2{+}242, 2{+}138) = \mathrm{Dir}(244, 140) \\
+\theta_{23}|D &\sim \mathrm{Dir}(2{+}104, 2{+}60) = \mathrm{Dir}(106, 62) \\
+\theta_{31}|D &\sim \mathrm{Dir}(2{+}161, 2{+}172) = \mathrm{Dir}(163, 174) \\
+\theta_{32}|D &\sim \mathrm{Dir}(2{+}174, 2{+}206) = \mathrm{Dir}(176, 208) \\
+\theta_{33}|D &\sim \mathrm{Dir}(2{+}91, 2{+}73) = \mathrm{Dir}(93, 75) \\
+\theta_4|D &\sim \mathrm{Dir}(4{+}333, 4{+}380, 4{+}164) = \mathrm{Dir}(337, 384, 168)
+\end{align*}
+
+\subsubsection*{B2.3}
+\label{sec:B:B2:3}
+
+\begin{align*}
+    P(Y=\text{A} \,|\, X_1=\text{hi}, X_2=\text{lo}, X_3=\text{hi}, \,D) &\propto (0.3797035)(0.3903904)(0.5885886)(0.5165165) = 0.04506504 \\
+    P(Y=\text{B} \,|\, X_1=\text{hi}, X_2=\text{lo}, X_3=\text{hi}, \,D) &\propto (0.4332953)(0.6500000)(0.6368421)(0.5421053) = 0.09723279 \\
+    P(Y=\text{C} \,|\, X_1=\text{hi}, X_2=\text{lo}, X_3=\text{hi}, \,D) &\propto (0.1870011)(0.3170732)(0.6341463)(0.4451220) = 0.01673679 \\
+\end{align*}
+
+\subsubsection*{B2.4}
+\label{sec:B:B2:4}
+
+The function cpquery gives a different number each time because it uses Monte-Carlo simulation to find the conditional probabilities.
+
+\subsection*{B3}
+\label{sec:B:B3}
+
+As $\alpha$ grows, the posterior mean $\frac{\alpha_{ijk} + N_{ijk}}{\sum_k (\alpha_{ijk} + N_{ijk})}$ becomes less sensitive to the observed data. Consequently, the classification probabilities become closer to uniform as $\alpha$ increases. 
+
+\subsection*{B4}
+\label{sec:B:B4}
+
+\subsubsection*{B4.1}
+\label{sec:B:B4:1}
+
+\begin{align*}
+    \text{M1} :&\quad P(Y,X_1,X_2,X_3) \propto P(Y) \, P(X_3|Y,X_2,X_1) \, P(X_2|Y,X_1) \, P(X_1|Y) \\
+    \text{M2} :&\quad P(Y,X_1,X_2,X_3) \propto P(Y) \, P(X_3|Y) \, P(X_2|Y) \, P(X_1|Y) \\
+    \text{M3} :&\quad P(Y,X_1,X_2,X_3) \propto P(Y) \, P(X_3|Y) \, P(X_2|Y,X1) \, P(X_1|Y) \\
+    \text{M4} :&\quad P(Y,X_1,X_2,X_3) \propto P(Y) \, P(X_3|Y,X_1) \, P(X_2|Y) \, P(X_1|Y) \\
+    \text{M5} :&\quad P(Y,X_1,X_2,X_3) \propto P(Y) \, P(X_3|Y,X_2) \, P(X_2|Y) \, P(X_1|Y) \\
+\end{align*}
+
+M1: \begin{itemize}
+    \item $P(Y)$: no parents
+    \item $P(X_3|Y,X_2,X_1)$: 
+    (A,lo,lo), (B,lo,lo), (C,lo,lo), 
+    (A,hi,lo), (B,hi,lo), (C,hi,lo)
+    (A,hi,hi), (B,hi,hi), (C,hi,hi)
+    (A,lo,hi), (B,lo,hi), (C,lo,hi)
+    \item $P(X_2|Y,X_1)$: 
+    (A,lo), (B,lo), (C,lo)
+    (A,hi), (B,hi), (C,hi)
+    \item $P(X_1|Y)$:
+    A, B, C
+\end{itemize}
+M2: \begin{itemize}
+    \item $P(Y)$: no parents
+    \item $P(X_3|Y)$: A, B, C
+    \item $P(X_2|Y)$: A, B, C
+    \item $P(X_1|Y)$: A, B, C
+\end{itemize}
+M3: \begin{itemize}
+    \item $P(Y)$: no parents
+    \item $P(X_3|Y)$: A, B, C
+    \item $P(X_2|Y,X_1)$:
+    (A,lo), (B,lo), (C,lo)
+    (A,hi), (B,hi), (C,hi)
+    \item $P(X_1|Y)$: A, B, C
+\end{itemize}
+M4: \begin{itemize}
+    \item $P(Y)$: no parents
+    \item $P(X_3|Y,X_1)$: 
+    (A,lo), (B,lo), (C,lo)
+    (A,hi), (B,hi), (C,hi)
+    \item $P(X_2|Y)$: A, B, C
+    \item $P(X_1|Y)$: A, B, C
+\end{itemize}
+M5: \begin{itemize}
+    \item $P(Y)$: no parents
+    \item $P(X_3|Y,X_2)$: 
+    (A,lo), (B,lo), (C,lo)
+    (A,hi), (B,hi), (C,hi)
+    \item $P(X_2|Y)$: A, B, C
+    \item $P(X_1|Y)$: A, B, C
+\end{itemize}
+
+\subsubsection*{B4.2.a}
+\label{sec:B:B4:2.a}
+
+For M5: \begin{align*}
+    \theta_{3i} &\sim \mathrm{Dir}\left(\frac{12}{2 \cdot 6}, \frac{12}{2 \cdot 6} \right)
+\end{align*} and \begin{align*}
+    \theta_{11}|D &\sim \mathrm{Dir}(2{+}203, 2{+}130) = \mathrm{Dir}(205, 132) \\
+    \theta_{12}|D &\sim \mathrm{Dir}(2{+}133, 2{+}247) = \mathrm{Dir}(135, 249) \\
+    \theta_{13}|D &\sim \mathrm{Dir}(2{+}112, 2{+}52) = \mathrm{Dir}(114, 54) \\
+    \theta_{21}|D &\sim \mathrm{Dir}(2{+}196, 2{+}137) = \mathrm{Dir}(198, 139) \\
+    \theta_{22}|D &\sim \mathrm{Dir}(2{+}242, 2{+}138) = \mathrm{Dir}(244, 140) \\
+    \theta_{23}|D &\sim \mathrm{Dir}(2{+}104, 2{+}60) = \mathrm{Dir}(106, 62) \\
+    \theta_{31}|D &\sim \mathrm{Dir}(1{+}134, 1{+}62) = \mathrm{Dir}(135, 63) \\
+    \theta_{32}|D &\sim \mathrm{Dir}(1{+}27, 1{+}110) = \mathrm{Dir}(28, 111) \\
+    \theta_{33}|D &\sim \mathrm{Dir}(1{+}158, 1{+}84) = \mathrm{Dir}(159, 85) \\
+    \theta_{34}|D &\sim \mathrm{Dir}(1{+}16, 1{+}122) = \mathrm{Dir}(17, 123) \\
+    \theta_{35}|D &\sim \mathrm{Dir}(1{+}78, 1{+}26) = \mathrm{Dir}(79, 27) \\
+    \theta_{36}|D &\sim \mathrm{Dir}(1{+}13, 1{+}47) = \mathrm{Dir}(14, 48) \\
+    \theta_4|D &\sim \mathrm{Dir}(4{+}333, 4{+}380, 4{+}164) = \mathrm{Dir}(337, 384, 168)
+\end{align*}
+
+\subsubsection*{B4.2.b}
+\label{sec:B:B4:2.b}
+
+See tables \ref{tab:parents}, \ref{tab:bayes_lw}, and \ref{tab:exact}.
+
+The default method, ``parents'', plugs in new values for the parents of the node being predicted. The ``preference'' node has no parents, so the unconditional posterior distribution is used to make the prediction. Thus the predicted distribution is the same for every attribute profile and every model, making it is not appropriate. The ``bayes-lw'' method does likelihood weighting simulations. It produces slightly different answers predictions on each call because the simulations are stochastic.
+
+\subsubsection*{B4.2.c}
+\label{sec:B:B4:2.c}
+
+See table \ref{tab:exact}.
+
+\begin{table}[h!]
+\centering
+\label{tab:cm1}
+\begin{tabular}{c|ccc}
+ & \multicolumn{3}{c}{Predicted} \\
+Actual & A & B & C \\
+\hline
+A & 207 & 137 & 115 \\
+B & 126 & 243 & 49 \\
+C & 0 & 0 & 0 \\
+\end{tabular}
+\caption{Confusion Matrix for M1 (accuracy 51\%)}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\label{tab:cm2}
+\begin{tabular}{c|ccc}
+ & \multicolumn{3}{c}{Predicted} \\
+Actual & A & B & C \\
+\hline
+A & 203 & 133 & 112 \\
+B & 130 & 247 & 52 \\
+C & 0 & 0 & 0 \\
+\end{tabular}
+\caption{Confusion Matrix for M2 (accuracy 51\%)}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\label{tab:cm3}
+\begin{tabular}{c|ccc}
+ & \multicolumn{3}{c}{Predicted} \\
+Actual & A & B & C \\
+\hline
+A & 203 & 133 & 112 \\
+B & 130 & 247 & 52 \\
+C & 0 & 0 & 0 \\
+\end{tabular}
+\caption{Confusion Matrix for M3 (accuracy 51\%)}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\label{tab:cm4}
+\begin{tabular}{c|ccc}
+ & \multicolumn{3}{c}{Predicted} \\
+Actual & A & B & C \\
+\hline
+A & 203 & 133 & 112 \\
+B & 130 & 247 & 52 \\
+C & 0 & 0 & 0 \\
+\end{tabular}
+\caption{Confusion Matrix for M4 (accuracy 51\%)}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\label{tab:cm5}
+\begin{tabular}{c|ccc}
+ & \multicolumn{3}{c}{Predicted} \\
+Actual & A & B & C \\
+\hline
+A & 203 & 133 & 112 \\
+B & 130 & 247 & 52 \\
+C & 0 & 0 & 0 \\
+\end{tabular}
+\caption{Confusion Matrix for M5 (accuracy 51\%)}
+\end{table}
+
+\subsubsection*{B4.3}
+\label{sec:B:B4:3}
+
+\begin{align*}
+    \log p(D|M_1) = -2488.666 \\
+    \log p(D|M_1) = -2699.46 \\
+    \log p(D|M_1) = -2636.569 \\
+    \log p(D|M_1) = -2608.371 \\
+    \log p(D|M_1) = -2587.904
+\end{align*}
+
+\begin{align*}
+    \log L(Y|M_2) &= \log\Gamma(4+4+4) - \log\Gamma(4+4+4+333+380+164) \\
+    &\quad + \log\Gamma(4 + 333) - \log\Gamma(4) \\
+    &\quad + \log\Gamma(4 + 380) - \log\Gamma(4) \\
+    &\quad + \log\Gamma(4 + 164) - \log\Gamma(4) \\
+    &= \log\Gamma(12) - \log\Gamma(889) \\
+    &\quad + \log\Gamma(337) - \log\Gamma(4) + \log\Gamma(384) - \log\Gamma(4)  + \log\Gamma(168) - \log\Gamma(4) \\
+    &= -920.2423
+\end{align*}
+
+\begin{align*}
+    \log p(M_1|D) \propto \log p(D|M_1) + \log p(M_1) = {-2488.666} + {-1.609438} = -2490.276 \\
+    \log p(M_2|D) \propto -2701.07 \\
+    \log p(M_3|D) \propto -2638.178 \\
+    \log p(M_4|D) \propto -2609.98 \\
+    \log p(M_5|D) \propto -2589.513 \\
+\end{align*}
+
+Model M1 is best supported by the data. It does not classify best.
+
+\section*{Interpretation}
+\label{sec:interp}
+
+% State what the analysis says about which attributes drive provider preference, and what that implies for providers A and C.
+
+
+
+
+
+
+\pagebreak
+
+\begin{landscape}
+\begin{table}[h!]
+\centering
+\resizebox{\linewidth}{!}{
+\begin{tabular}[t]{llllllll}
+\toprule
+X1 & X2 & X3 & M1 & M2 & M3 & M4 & M5\\
+\midrule
+low & low & low & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890)\\
+high & low & low & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890)\\
+low & high & low & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890)\\
+high & high & low & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890)\\
+low & low & high & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890)\\
+\addlinespace
+high & low & high & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890)\\
+low & high & high & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890)\\
+high & high & high & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890) & B (0.3791, 0.4319, 0.1890)\\
+\bottomrule
+\end{tabular}}
+\caption{\label{tab:parents}Predictions using method = parents. Each cell gives predicted class followed by $(P(A),P(B),P(C))$.}
+\end{table}
+\end{landscape}
+
+\begin{landscape}
+\begin{table}[h!]
+\centering
+\resizebox{\linewidth}{!}{
+\begin{tabular}[t]{llllllll}
+\toprule
+X1 & X2 & X3 & M1 & M2 & M3 & M4 & M5\\
+\midrule
+low & low & low & A (0.4018, 0.3592, 0.2390) & A (0.4356, 0.2465, 0.3179) & A (0.4264, 0.3289, 0.2447) & A (0.3959, 0.3389, 0.2652) & A (0.4252, 0.3130, 0.2618)\\
+high & low & low & B (0.2634, 0.6823, 0.0543) & B (0.3157, 0.5196, 0.1647) & B (0.2844, 0.6280, 0.0876) & B (0.2282, 0.6718, 0.1000) & B (0.2805, 0.5844, 0.1351)\\
+low & high & low & A (0.5618, 0.2415, 0.1966) & A (0.4557, 0.2628, 0.2816) & A (0.5602, 0.1728, 0.2669) & A (0.4746, 0.3108, 0.2147) & A (0.5462, 0.1758, 0.2780)\\
+high & high & low & B (0.3651, 0.3831, 0.2518) & B (0.3485, 0.5102, 0.1412) & B (0.3241, 0.5078, 0.1681) & B (0.3159, 0.5608, 0.1232) & B (0.4045, 0.4263, 0.1692)\\
+low & low & high & A (0.4927, 0.2651, 0.2423) & A (0.4280, 0.3156, 0.2564) & A (0.4264, 0.3243, 0.2493) & A (0.5807, 0.2034, 0.2160) & A (0.4580, 0.3470, 0.1950)\\
+\addlinespace
+high & low & high & B (0.2469, 0.6666, 0.0865) & B (0.2620, 0.6235, 0.1146) & B (0.2866, 0.6336, 0.0798) & B (0.3249, 0.5388, 0.1363) & B (0.2748, 0.6303, 0.0949)\\
+low & high & high & A (0.6229, 0.1416, 0.2355) & A (0.4930, 0.3260, 0.1810) & A (0.6059, 0.2120, 0.1821) & A (0.5473, 0.2136, 0.2391) & A (0.4359, 0.3038, 0.2603)\\
+high & high & high & B (0.3272, 0.5116, 0.1612) & B (0.3046, 0.5839, 0.1114) & B (0.3503, 0.5010, 0.1486) & B (0.3602, 0.5227, 0.1171) & B (0.2915, 0.5793, 0.1292)\\
+\bottomrule
+\end{tabular}}
+\caption{\label{tab:bayes_lw}Predictions using method = bayes-lw. Each cell gives predicted class followed by $(P(A),P(B),P(C))$.}
+\end{table}
+\end{landscape}
+
+\begin{landscape}
+\begin{table}[h!]
+\centering
+\resizebox{\linewidth}{!}{
+\begin{tabular}[t]{llllllll}
+\toprule
+X1 & X2 & X3 & M1 & M2 & M3 & M4 & M5\\
+\midrule
+low & low & low & A (0.3975, 0.3450, 0.2574) & A (0.4240, 0.2862, 0.2898) & A (0.4093, 0.3046, 0.2861) & A (0.3962, 0.3447, 0.2591) & A (0.4285, 0.2917, 0.2797)\\
+high & low & low & B (0.2457, 0.6914, 0.0629) & B (0.2910, 0.5626, 0.1463) & B (0.2627, 0.6452, 0.0920) & B (0.2553, 0.6350, 0.1097) & B (0.2915, 0.5685, 0.1400)\\
+low & high & low & A (0.5493, 0.2394, 0.2113) & A (0.4715, 0.2601, 0.2685) & A (0.5635, 0.1716, 0.2649) & A (0.4433, 0.3152, 0.2415) & A (0.5239, 0.1838, 0.2922)\\
+high & high & low & B (0.3617, 0.3617, 0.2766) & B (0.3335, 0.5269, 0.1397) & B (0.3412, 0.4753, 0.1835) & B (0.2949, 0.5995, 0.1055) & B (0.4140, 0.4161, 0.1699)\\
+low & low & high & A (0.4965, 0.2587, 0.2448) & A (0.4418, 0.3301, 0.2281) & A (0.4252, 0.3503, 0.2245) & A (0.5228, 0.2199, 0.2573) & A (0.4429, 0.3454, 0.2117)\\
+\addlinespace
+high & low & high & B (0.2657, 0.6425, 0.0918) & B (0.2841, 0.6080, 0.1079) & B (0.2510, 0.6825, 0.0664) & B (0.2984, 0.5696, 0.1320) & B (0.2789, 0.6230, 0.0981)\\
+low & high & high & A (0.5935, 0.1545, 0.2520) & A (0.4900, 0.2992, 0.2108) & A (0.5909, 0.1993, 0.2098) & A (0.5702, 0.1960, 0.2338) & A (0.4711, 0.3017, 0.2272)\\
+high & high & high & B (0.3379, 0.5147, 0.1474) & B (0.3262, 0.5706, 0.1032) & B (0.3392, 0.5230, 0.1378) & B (0.3415, 0.5327, 0.1258) & B (0.3135, 0.5752, 0.1113)\\
+\bottomrule
+\end{tabular}}
+\caption{\label{tab:exact}Predictions using method = exact. Each cell gives predicted class followed by $(P(A),P(B),P(C))$.}
+\end{table}
+\end{landscape}
+
+\end{document}
+
+
+
+
