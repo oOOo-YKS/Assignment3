@@ -1,0 +1,1132 @@
+---
+title: "Assignment 3 — Part B"
+subtitle: "Bayesian networks for carrier preference"
+author: "Kai"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: false
+    code_folding: hide
+    theme: readable
+    highlight: textmate
+    self_contained: true
+---
+
+<style>
+.main-container { max-width: 1180px; }
+h1, h2, h3, h4 { line-height: 1.35; }
+h2 { margin-top: 2em; border-bottom: 1px solid #dce3e8; padding-bottom: .35em; }
+table { font-size: .9em; }
+.table-scroll { overflow-x: auto; margin: 1em 0; }
+.table-scroll table { min-width: 1080px; }
+.table-scroll td { white-space: nowrap; }
+pre { font-size: 12px; }
+</style>
+
+```{r setup, include=FALSE}
+source("00_setup.R", encoding = "UTF-8")
+knitr::opts_chunk$set(message = FALSE, warning = FALSE,
+                     fig.align = "center", out.width = "90%")
+```
+
+This report analyzes 877 observations of preferred carrier (Y) and satisfaction
+with reputation (X1), price (X2), and service variety (X3). Unless otherwise stated,
+the global prior precision is $\alpha=12$. All reported accuracies are in-sample.
+R version: `r as.character(getRversion())`; bnlearn: `r as.character(packageVersion("bnlearn"))`;
+gRain: `r as.character(packageVersion("gRain"))`.
+
+Code is retained in the document and can be expanded using the **Code** buttons.
+
+## B1. Data exploration
+
+### Read and recode the data
+
+```{r read-and-recode}
+raw <- read.csv("data/carrier_data.csv")
+
+d <- raw
+
+d$Y <- factor(
+  raw$Y,
+  levels = c(1, 2, 3),
+  labels = c("A", "B", "C")
+)
+
+d$X1 <- factor(
+  raw$X1, 
+  levels = c(0, 1), 
+  labels = c("low", "high")
+)
+
+d$X2 <- factor(
+  raw$X2, 
+  levels = c(0, 1), 
+  labels = c("low", "high")
+)
+d$X3 <- factor(
+  raw$X3, 
+  levels = c(0, 1), 
+  labels = c("low", "high")
+)
+
+stopifnot(nrow(d) == 877, !anyNA(d))
+knitr::kable(head(d), caption = "First six observations after recoding")
+```
+
+The four variables are factors because their values represent categories.
+For Y, the original codes 1, 2, and 3 map to A, B, and C; for each attribute,
+0 and 1 map to low and high. We retain `raw` for checking the original coding.
+
+### Four-way contingency table
+
+```{r four-way-display}
+four_way <- xtabs(~ Y + X1 + X2 + X3, data = d)
+compact_counts <- ftable(four_way, row.vars = c("X1", "X2", "X3"), col.vars = "Y")
+compact_counts
+stopifnot(sum(four_way) == nrow(d))
+```
+
+### Cross-tabulations of Y with each X
+
+```{r cross-tabulations}
+y_x1 <- table(Y = d$Y, X1 = d$X1)
+y_x2 <- table(Y = d$Y, X2 = d$X2)
+y_x3 <- table(Y = d$Y, X3 = d$X3)
+
+knitr::kable(y_x1, caption = "Y and reputation satisfaction (X1)")
+knitr::kable(y_x2, caption = "Y and price satisfaction (X2)")
+knitr::kable(y_x3, caption = "Y and service variety satisfaction (X3)")
+```
+
+### Which attribute appears most related to the preferred provider?
+
+```{r within-provider-proportions}
+high_proportions <- data.frame(
+  Attribute = c("Reputation (X1)", "Price (X2)", "Service variety (X3)"),
+  A = c(prop.table(y_x1, 1)["A", "high"], prop.table(y_x2, 1)["A", "high"], prop.table(y_x3, 1)["A", "high"]),
+  B = c(prop.table(y_x1, 1)["B", "high"], prop.table(y_x2, 1)["B", "high"], prop.table(y_x3, 1)["B", "high"]),
+  C = c(prop.table(y_x1, 1)["C", "high"], prop.table(y_x2, 1)["C", "high"], prop.table(y_x3, 1)["C", "high"])
+)
+knitr::kable(high_proportions, digits = 4,
+             caption = "Proportion reporting high satisfaction within each provider group")
+```
+
+Reputation (X1) appears most related to provider preference: the proportions
+reporting high reputation satisfaction are 39.04% for A, 65.00% for B, and
+31.71% for C. The between-group differences are smaller for price and service variety.
+
+#### Supplementary binary logistic regressions
+
+The following exploratory models compare each provider with the other two combined.
+They supplement the cross-tabulations and do not replace the Bayesian networks.
+Their separately estimated probabilities need not sum to one.
+
+```{r supplementary-logistic-models}
+model_1 <- glm(I(Y == "A") ~ X1 + X2 + X3,
+               data = d, family = binomial())
+
+model_2 <- glm(I(Y == "B") ~ X1 + X2 + X3,
+               data = d, family = binomial())
+
+model_3 <- glm(I(Y == "C") ~ X1 + X2 + X3,
+               data = d, family = binomial())
+
+# Compare coefficients across the three models
+round(cbind(
+  A = coef(model_1),
+  B = coef(model_2),
+  C = coef(model_3)
+), 3)
+```
+
+## B2. Naive Bayes by hand and in software
+
+### B2.1 Naive Bayes DAG and factorization
+
+```{r naive-bayes-dag, fig.width=6, fig.height=4}
+nb <- naive.bayes(d, training = "Y")
+plot(nb)
+```
+
+The model assumes that X1, X2, and X3 are mutually independent conditional on Y.
+
+The joint distribution factorizes as:
+
+$$
+p(y,x_1,x_2,x_3)
+=
+p(y)\,p(x_1\mid y)\,p(x_2\mid y)\,p(x_3\mid y).
+$$
+
+#### Parameter vectors
+
+Let $(Y_1,Y_2,Y_3,Y_4)=(Y,X_1,X_2,X_3)$. The parameter vectors are
+
+$$
+\boldsymbol{\theta}_1=(P(Y=A),P(Y=B),P(Y=C)),
+$$
+
+and, for each $j\in\{A,B,C\}$,
+
+$$
+\begin{aligned}
+\boldsymbol{\theta}_{2j}&=(P(X_1=L\mid Y=j),P(X_1=H\mid Y=j)),\\
+\boldsymbol{\theta}_{3j}&=(P(X_2=L\mid Y=j),P(X_2=H\mid Y=j)),\\
+\boldsymbol{\theta}_{4j}&=(P(X_3=L\mid Y=j),P(X_3=H\mid Y=j)).
+\end{aligned}
+$$
+
+Here $L=\mathrm{low}$ and $H=\mathrm{high}$.
+
+### B2.2 Dirichlet priors and posteriors
+
+With global precision $\alpha=12$, the prior parameters are
+
+$$
+\alpha_{ijk}=\frac{\alpha}{C_iQ_i}.
+$$
+
+For $Y$, we have $C_1=3$ and $Q_1=1$, so
+
+$$
+\boldsymbol{\theta}_1 \sim \operatorname{Dir}(4,4,4).
+$$
+
+For each attribute, $C_i=2$ and $Q_i=3$. Therefore,
+for $j\in\{A,B,C\}$,
+
+$$
+\boldsymbol{\theta}_{2j},
+\boldsymbol{\theta}_{3j},
+\boldsymbol{\theta}_{4j}
+\sim \operatorname{Dir}(2,2).
+$$
+
+#### Posterior distributions of all parameters
+
+For each parameter vector, Dirichlet–multinomial conjugacy gives
+
+$$
+\boldsymbol{\theta}_{ij}\mid D
+\sim \operatorname{Dir}
+\left(\alpha_{ij1}+N_{ij1},\ldots,
+      \alpha_{ijC_i}+N_{ijC_i}\right),
+$$
+
+where $N_{ijk}$ is the observed count for category $k$ under
+parent configuration $j$. Thus, each posterior parameter is
+the corresponding prior parameter plus the observed count.
+
+##### Class probabilities
+
+The category order is $(A,B,C)$. The observed class counts are
+$(333,380,164)$. With prior $\operatorname{Dir}(4,4,4)$,
+
+$$
+\begin{aligned}
+\boldsymbol{\theta}_1\mid D
+&\sim \operatorname{Dir}(4+333,\;4+380,\;4+164)\\
+&=\operatorname{Dir}(337,\;384,\;168).
+\end{aligned}
+$$
+
+##### Reputation satisfaction: $X_1$
+
+For each provider, the category order is $(\mathrm{low},\mathrm{high})$
+and the prior is $\operatorname{Dir}(2,2)$.
+The observed counts for providers A, B, and C are
+$(203,130)$, $(133,247)$, and $(112,52)$, respectively.
+
+$$
+\begin{aligned}
+\boldsymbol{\theta}_{2A}\mid D
+&\sim \operatorname{Dir}(2+203,\;2+130)
+ = \operatorname{Dir}(205,\;132),\\
+\boldsymbol{\theta}_{2B}\mid D
+&\sim \operatorname{Dir}(2+133,\;2+247)
+ = \operatorname{Dir}(135,\;249),\\
+\boldsymbol{\theta}_{2C}\mid D
+&\sim \operatorname{Dir}(2+112,\;2+52)
+ = \operatorname{Dir}(114,\;54).
+\end{aligned}
+$$
+
+##### Price satisfaction: $X_2$
+
+The category order is $(\mathrm{low},\mathrm{high})$.
+The observed counts for providers A, B, and C are
+$(196,137)$, $(242,138)$, and $(104,60)$, respectively.
+Adding the prior parameters $(2,2)$ gives
+
+$$
+\begin{aligned}
+\boldsymbol{\theta}_{3A}\mid D
+&\sim \operatorname{Dir}(2+196,\;2+137)
+ = \operatorname{Dir}(198,\;139),\\
+\boldsymbol{\theta}_{3B}\mid D
+&\sim \operatorname{Dir}(2+242,\;2+138)
+ = \operatorname{Dir}(244,\;140),\\
+\boldsymbol{\theta}_{3C}\mid D
+&\sim \operatorname{Dir}(2+104,\;2+60)
+ = \operatorname{Dir}(106,\;62).
+\end{aligned}
+$$
+
+##### Service variety satisfaction: $X_3$
+
+The category order is $(\mathrm{low},\mathrm{high})$.
+The observed counts for providers A, B, and C are
+$(161,172)$, $(174,206)$, and $(91,73)$, respectively.
+Adding the prior parameters $(2,2)$ gives
+
+$$
+\begin{aligned}
+\boldsymbol{\theta}_{4A}\mid D
+&\sim \operatorname{Dir}(2+161,\;2+172)
+ = \operatorname{Dir}(163,\;174),\\
+\boldsymbol{\theta}_{4B}\mid D
+&\sim \operatorname{Dir}(2+174,\;2+206)
+ = \operatorname{Dir}(176,\;208),\\
+\boldsymbol{\theta}_{4C}\mid D
+&\sim \operatorname{Dir}(2+91,\;2+73)
+ = \operatorname{Dir}(93,\;75).
+\end{aligned}
+$$
+
+Under the assumed independent Dirichlet priors and the naive Bayes
+likelihood, these ten parameter vectors remain mutually independent
+in the posterior.
+
+### B2.3 Posterior classification probabilities by hand
+
+For a customer with
+$X_1=\mathrm{high}$, $X_2=\mathrm{low}$, and $X_3=\mathrm{high}$,
+we want to calculate
+
+$$
+P(Y=j\mid X_1=\mathrm{high},X_2=\mathrm{low},
+X_3=\mathrm{high},D),
+\qquad j\in\{A,B,C\}.
+$$
+
+Under naive Bayes, the unnormalized weight for class $j$ is
+
+$$
+w_j =
+P(Y=j\mid D)
+P(X_1=\mathrm{high}\mid Y=j,D)
+P(X_2=\mathrm{low}\mid Y=j,D)
+P(X_3=\mathrm{high}\mid Y=j,D).
+$$
+
+Each probability is obtained from the corresponding Dirichlet
+posterior mean: divide its category parameter by the sum of
+the parameters in that vector.
+
+#### Step 1: Obtain the required posterior means
+
+For the class probabilities, the posterior is
+$\operatorname{Dir}(337,384,168)$, with total $889$.
+
+For the attributes, use the high component for $X_1$ and $X_3$,
+and the low component for $X_2$.
+
+| Class | $P(Y=j\mid D)$ | $P(X_1=\mathrm{high}\mid j,D)$ | $P(X_2=\mathrm{low}\mid j,D)$ | $P(X_3=\mathrm{high}\mid j,D)$ |
+| --- | --- | --- | --- | --- |
+| A | $337/889$ | $132/337$ | $198/337$ | $174/337$ |
+| B | $384/889$ | $249/384$ | $244/384$ | $208/384$ |
+| C | $168/889$ | $54/168$ | $106/168$ | $75/168$ |
+
+For example, the posterior for $X_1$ given $Y=A$ is
+$\operatorname{Dir}(205,132)$, so
+
+$$
+P(X_1=\mathrm{high}\mid Y=A,D)
+=\frac{132}{205+132}
+=\frac{132}{337}.
+$$
+
+#### Step 2: Calculate the unnormalized class weights
+
+$$
+\begin{aligned}
+w_A
+&=\frac{337}{889}
+  \frac{132}{337}
+  \frac{198}{337}
+  \frac{174}{337},\\[4pt]
+w_B
+&=\frac{384}{889}
+  \frac{249}{384}
+  \frac{244}{384}
+  \frac{208}{384},\\[4pt]
+w_C
+&=\frac{168}{889}
+  \frac{54}{168}
+  \frac{106}{168}
+  \frac{75}{168}.
+\end{aligned}
+$$
+
+#### Step 3: Normalize the weights
+
+The weights are joint predictive probabilities. To obtain
+conditional class probabilities, divide each by their sum:
+
+$$
+P(Y=j\mid x,D)=\frac{w_j}{w_A+w_B+w_C}.
+$$
+
+This gives
+
+$$
+\begin{aligned}
+P(Y=A\mid x,D)&\approx 0.284084,\\
+P(Y=B\mid x,D)&\approx 0.608006,\\
+P(Y=C\mid x,D)&\approx 0.107910.
+\end{aligned}
+$$
+
+The three probabilities sum to 1. We classify this customer
+as preferring **provider B**, which has the highest posterior
+classification probability, approximately **60.80%**.
+
+```{r hand-arithmetic}
+hand_weights <- c(
+  A = (337/889) * (132/337) * (198/337) * (174/337),
+  B = (384/889) * (249/384) * (244/384) * (208/384),
+  C = (168/889) * (54/168) * (106/168) * (75/168)
+)
+hand_probs <- hand_weights / sum(hand_weights)
+knitr::kable(data.frame(Provider = names(hand_probs),
+                         Weight = as.numeric(hand_weights),
+                         Probability = as.numeric(hand_probs)), digits = 6)
+```
+
+### B2.4 Verification using bnlearn
+
+#### Fit the naive Bayes model
+
+```{r b2-4-fit}
+nb <- naive.bayes(d, training = "Y")
+
+nb_fit <- bn.fit(
+  nb,
+  data = d,
+  method = "bayes",
+  iss = 12
+)
+
+# Conditional probability tables: posterior means
+coef(nb_fit)
+```
+
+The argument `iss = 12` corresponds to the global precision
+$\alpha=12$. The fitted probability tables contain posterior
+means, rather than the full Dirichlet posterior distributions.
+
+#### Verify the posterior Dirichlet parameters
+
+For Y, each prior parameter is $12/(3\times1)=4$.
+For each attribute conditional on Y, each prior parameter is
+$12/(2\times3)=2$. Adding the observed counts gives:
+
+```{r b2-4-posterior-parameters}
+post_Y  <- table(d$Y) + 4
+post_X1 <- table(Y = d$Y, X1 = d$X1) + 2
+post_X2 <- table(Y = d$Y, X2 = d$X2) + 2
+post_X3 <- table(Y = d$Y, X3 = d$X3) + 2
+
+post_Y
+post_X1
+post_X2
+post_X3
+```
+
+For Y, the entries form one Dirichlet parameter vector.
+For each attribute, each row forms a Dirichlet parameter
+vector in the order low/high. These reproduce B2.2.
+
+#### Predict the specified customer's preference
+
+```{r b2-4-predict}
+customer <- data.frame(
+  X1 = factor("high", levels = levels(d$X1)),
+  X2 = factor("low",  levels = levels(d$X2)),
+  X3 = factor("high", levels = levels(d$X3))
+)
+
+prediction <- predict(
+  nb_fit,
+  data = customer,
+  prob = TRUE
+)
+
+prediction
+software_probs <- attr(prediction, "prob")
+round(software_probs, 6)
+stopifnot(max(abs(software_probs[c("A", "B", "C"), 1] - hand_probs)) < 1e-10)
+```
+
+The probabilities are approximately 0.284084 for A,
+0.608006 for B, and 0.107910 for C, matching the hand
+calculation in B2.3. The predicted provider is B.
+
+#### Verify using cpquery
+
+```{r b2-4-cpquery}
+set.seed(20261002)
+
+query_probs <- c(
+  A = cpquery(
+    nb_fit,
+    event = (Y == "A"),
+    evidence = (X1 == "high" & X2 == "low" & X3 == "high"),
+    method = "ls",
+    n = 1000000
+  ),
+  B = cpquery(
+    nb_fit,
+    event = (Y == "B"),
+    evidence = (X1 == "high" & X2 == "low" & X3 == "high"),
+    method = "ls",
+    n = 1000000
+  ),
+  C = cpquery(
+    nb_fit,
+    event = (Y == "C"),
+    evidence = (X1 == "high" & X2 == "low" & X3 == "high"),
+    method = "ls",
+    n = 1000000
+  )
+)
+
+comparison <- data.frame(
+  Provider = c("A", "B", "C"),
+  Predict = as.numeric(software_probs[c("A", "B", "C"), 1]),
+  Cpquery = as.numeric(query_probs)
+)
+
+knitr::kable(comparison, digits = 6)
+```
+
+With `method = "ls"`, `cpquery()` simulates observations
+from the fitted network, retains those matching the evidence,
+and estimates the fraction belonging to the requested class.
+
+Its results differ slightly from the exact probabilities
+because of Monte Carlo sampling error. Without resetting
+the seed, repeated calls generally produce different estimates.
+Resetting the same seed makes the simulation reproducible;
+increasing the number of samples generally reduces the error.
+
+Because A, B, and C are estimated in separate simulation calls,
+their estimated probabilities need not sum to exactly 1.
+
+## B3. Prior sensitivity
+
+We refit the naive Bayes model with $\alpha=1,12,100,1000$
+and compare the classification probabilities for the customer
+with high reputation, low price, and high service satisfaction.
+
+```{r b3-prior-sensitivity}
+alpha_values <- c(1, 12, 100, 1000)
+
+sensitivity <- data.frame(
+  alpha = alpha_values,
+  A = NA_real_,
+  B = NA_real_,
+  C = NA_real_
+)
+
+for (i in seq_along(alpha_values)) {
+  fit <- bn.fit(
+    nb,
+    data = d,
+    method = "bayes",
+    iss = alpha_values[i]
+  )
+
+  pred <- predict(fit, data = customer, prob = TRUE)
+
+  sensitivity[i, c("A", "B", "C")] <-
+    as.numeric(attr(pred, "prob")[c("A", "B", "C"), 1])
+}
+
+knitr::kable(sensitivity, digits = 6)
+```
+
+The predicted provider remains **B** for all four prior strengths.
+However, its classification probability decreases as $\alpha$
+increases, while the probabilities of A and C increase.
+
+To explain this, the posterior mean can be written as
+
+$$
+E(\theta_{ijk}\mid D)
+=
+\frac{N_{ijk}+\alpha/(C_iQ_i)}
+     {N_{ij}+\alpha/Q_i}
+=
+\frac{N_{ij}}{N_{ij}+\alpha/Q_i}
+\frac{N_{ijk}}{N_{ij}}
++
+\frac{\alpha/Q_i}{N_{ij}+\alpha/Q_i}
+\frac{1}{C_i}.
+$$
+
+Thus, the posterior mean is a weighted average of the observed
+proportion and the uniform prior mean $1/C_i$.
+
+When $\alpha$ is small, the data receive more weight.
+As $\alpha$ increases, the uniform prior receives more weight,
+pulling the conditional probabilities toward uniformity.
+
+With the data held fixed, as $\alpha\to\infty$, the class
+probabilities approach $1/3$ and each binary attribute's
+conditional probabilities approach $1/2$. Consequently,
+the customer's classification probabilities also approach
+$(1/3,1/3,1/3)$.
+
+## B4. Five candidate classifiers
+
+### B4.1 Factorizations and parent configurations
+
+#### Joint factorizations
+
+$$
+\begin{aligned}
+M_1:\quad p(y,x_1,x_2,x_3)
+&=p(y)p(x_1\mid y)p(x_2\mid y,x_1)p(x_3\mid y,x_1,x_2),\\
+M_2:\quad p(y,x_1,x_2,x_3)
+&=p(y)p(x_1\mid y)p(x_2\mid y)p(x_3\mid y),\\
+M_3:\quad p(y,x_1,x_2,x_3)
+&=p(y)p(x_1\mid y)p(x_2\mid y,x_1)p(x_3\mid y),\\
+M_4:\quad p(y,x_1,x_2,x_3)
+&=p(y)p(x_1\mid y)p(x_2\mid y)p(x_3\mid y,x_1),\\
+M_5:\quad p(y,x_1,x_2,x_3)
+&=p(y)p(x_1\mid y)p(x_2\mid y)p(x_3\mid y,x_2).
+\end{aligned}
+$$
+
+#### Parent configurations
+
+Let $L=\mathrm{low}$ and $H=\mathrm{high}$.
+The parent sets for each model are:
+
+| Model | Parents of Y | Parents of X1 | Parents of X2 | Parents of X3 |
+| --- | --- | --- | --- | --- |
+| M1 | None | Y | (Y, X1) | (Y, X1, X2) |
+| M2 | None | Y | Y | Y |
+| M3 | None | Y | (Y, X1) | Y |
+| M4 | None | Y | Y | (Y, X1) |
+| M5 | None | Y | Y | (Y, X2) |
+
+Each parent set has the following configurations.
+Tuple entries follow the parent order shown above.
+
+- **No parents:** one empty configuration, so $Q=1$.
+- **Y:** $A,B,C$, so $Q=3$.
+- **(Y, X1):**
+  $(A,L),(A,H),(B,L),(B,H),(C,L),(C,H)$, so $Q=6$.
+- **(Y, X2):**
+  $(A,L),(A,H),(B,L),(B,H),(C,L),(C,H)$, so $Q=6$.
+- **(Y, X1, X2):** the following twelve configurations, so $Q=12$:
+
+$$
+\begin{aligned}
+&(A,L,L),\ (A,L,H),\ (A,H,L),\ (A,H,H),\\
+&(B,L,L),\ (B,L,H),\ (B,H,L),\ (B,H,H),\\
+&(C,L,L),\ (C,L,H),\ (C,H,L),\ (C,H,H).
+\end{aligned}
+$$
+
+### B4.2 Estimation and posterior classification probabilities
+
+#### B4.2(a) Parameter estimation and Dirichlet posteriors
+
+##### Define and fit the five models
+
+```{r b4-models}
+M1 <- model2network("[Y][X1|Y][X2|Y:X1][X3|Y:X1:X2]")
+M2 <- model2network("[Y][X1|Y][X2|Y][X3|Y]")
+M3 <- model2network("[Y][X1|Y][X2|Y:X1][X3|Y]")
+M4 <- model2network("[Y][X1|Y][X2|Y][X3|Y:X1]")
+M5 <- model2network("[Y][X1|Y][X2|Y][X3|Y:X2]")
+
+fit1 <- bn.fit(M1, data = d, method = "bayes", iss = 12)
+fit2 <- bn.fit(M2, data = d, method = "bayes", iss = 12)
+fit3 <- bn.fit(M3, data = d, method = "bayes", iss = 12)
+fit4 <- bn.fit(M4, data = d, method = "bayes", iss = 12)
+fit5 <- bn.fit(M5, data = d, method = "bayes", iss = 12)
+```
+
+```{r b4-plots, fig.width=9, fig.height=6}
+par(mfrow = c(2, 3))
+
+plot(M1, main = "M1")
+plot(M2, main = "M2")
+plot(M3, main = "M3")
+plot(M4, main = "M4")
+plot(M5, main = "M5")
+
+par(mfrow = c(1, 1))
+```
+
+We report the complete Dirichlet posterior distributions
+for M3, whose factorization is
+
+$$
+p(y,x_1,x_2,x_3)
+=
+p(y)p(x_1\mid y)p(x_2\mid y,x_1)p(x_3\mid y).
+$$
+
+With $\alpha=12$, the prior parameters are
+
+$$
+\alpha_{ijk}=\frac{12}{C_iQ_i}.
+$$
+
+Therefore:
+
+- Y has prior Dir(4,4,4).
+- Each X1 given Y vector has prior Dir(2,2).
+- Each X2 given (Y,X1) vector has prior Dir(1,1).
+- Each X3 given Y vector has prior Dir(2,2).
+
+The posterior parameters equal the prior parameters plus
+the corresponding observed counts.
+
+##### Class probabilities: Y
+
+The category order is A, B, C.
+
+$$
+\boldsymbol{\theta}_1\mid D
+\sim \operatorname{Dir}(4+333,\;4+380,\;4+164)
+=\operatorname{Dir}(337,\;384,\;168).
+$$
+
+##### X1 conditional on Y
+
+Each vector is ordered low, high.
+
+$$
+\begin{aligned}
+\boldsymbol{\theta}_{2,A}\mid D
+&\sim \operatorname{Dir}(2+203,\;2+130)
+=\operatorname{Dir}(205,\;132),\\
+\boldsymbol{\theta}_{2,B}\mid D
+&\sim \operatorname{Dir}(2+133,\;2+247)
+=\operatorname{Dir}(135,\;249),\\
+\boldsymbol{\theta}_{2,C}\mid D
+&\sim \operatorname{Dir}(2+112,\;2+52)
+=\operatorname{Dir}(114,\;54).
+\end{aligned}
+$$
+
+##### X2 conditional on Y and X1
+
+There are six parent configurations, so each prior parameter
+is $12/(2\times6)=1$.
+
+In the subscripts below, $(A,L)$ means $Y=A$ and
+$X_1=\mathrm{low}$. Each parameter vector describes the
+probabilities of X2 in the order low, high.
+
+$$
+\begin{aligned}
+\boldsymbol{\theta}_{3,(A,L)}\mid D
+&\sim \operatorname{Dir}(1+148,\;1+55)
+=\operatorname{Dir}(149,\;56),\\
+\boldsymbol{\theta}_{3,(A,H)}\mid D
+&\sim \operatorname{Dir}(1+48,\;1+82)
+=\operatorname{Dir}(49,\;83),\\
+\boldsymbol{\theta}_{3,(B,L)}\mid D
+&\sim \operatorname{Dir}(1+116,\;1+17)
+=\operatorname{Dir}(117,\;18),\\
+\boldsymbol{\theta}_{3,(B,H)}\mid D
+&\sim \operatorname{Dir}(1+126,\;1+121)
+=\operatorname{Dir}(127,\;122),\\
+\boldsymbol{\theta}_{3,(C,L)}\mid D
+&\sim \operatorname{Dir}(1+90,\;1+22)
+=\operatorname{Dir}(91,\;23),\\
+\boldsymbol{\theta}_{3,(C,H)}\mid D
+&\sim \operatorname{Dir}(1+14,\;1+38)
+=\operatorname{Dir}(15,\;39).
+\end{aligned}
+$$
+
+##### X3 conditional on Y
+
+Each vector is ordered low, high.
+
+$$
+\begin{aligned}
+\boldsymbol{\theta}_{4,A}\mid D
+&\sim \operatorname{Dir}(2+161,\;2+172)
+=\operatorname{Dir}(163,\;174),\\
+\boldsymbol{\theta}_{4,B}\mid D
+&\sim \operatorname{Dir}(2+174,\;2+206)
+=\operatorname{Dir}(176,\;208),\\
+\boldsymbol{\theta}_{4,C}\mid D
+&\sim \operatorname{Dir}(2+91,\;2+73)
+=\operatorname{Dir}(93,\;75).
+\end{aligned}
+$$
+
+These are all 13 parameter vectors for M3:
+one for Y, three for X1, six for X2, and three for X3.
+
+#### B4.2(b) Prediction methods and classification probabilities
+
+##### Create the eight profiles
+
+Writing them explicitly makes their order easy to follow:
+
+```{r b4-profiles}
+profiles <- data.frame(
+  X1 = c("low", "low", "low", "low",
+         "high", "high", "high", "high"),
+
+  X2 = c("low", "low", "high", "high",
+         "low", "low", "high", "high"),
+
+  X3 = c("low", "high", "low", "high",
+         "low", "high", "low", "high")
+)
+
+profiles$X1 <- factor(profiles$X1, levels = levels(d$X1))
+profiles$X2 <- factor(profiles$X2, levels = levels(d$X2))
+profiles$X3 <- factor(profiles$X3, levels = levels(d$X3))
+
+knitr::kable(profiles)
+```
+
+##### Compare the three prediction methods
+
+We compare all three methods for each model and all eight profiles. The helper
+function returns one row per method and profile; likelihood weighting uses
+100,000 samples and a fixed seed.
+
+```{r b4-methods}
+compare_methods <- function(fitted_model) {
+
+  pred_parents <- predict(
+    fitted_model, node = "Y", data = profiles,
+    method = "parents", prob = TRUE
+  )
+
+  set.seed(20261002)
+  pred_lw <- predict(
+    fitted_model, node = "Y", data = profiles,
+    method = "bayes-lw", prob = TRUE, n = 100000
+  )
+
+  pred_exact <- predict(
+    fitted_model, node = "Y", data = profiles,
+    method = "exact", prob = TRUE
+  )
+
+  # Probability matrices have classes in rows.
+  # t() transposes them so each customer profile becomes a row.
+  p_parents <- t(attr(pred_parents, "prob")[c("A", "B", "C"), ])
+  p_lw <- t(attr(pred_lw, "prob")[c("A", "B", "C"), ])
+  p_exact <- t(attr(pred_exact, "prob")[c("A", "B", "C"), ])
+
+  result <- rbind(
+    data.frame(Method = "parents", profiles, p_parents),
+    data.frame(Method = "bayes-lw", profiles, p_lw),
+    data.frame(Method = "exact", profiles, p_exact)
+  )
+
+  return(result)
+}
+
+methods1 <- compare_methods(fit1)
+methods2 <- compare_methods(fit2)
+methods3 <- compare_methods(fit3)
+methods4 <- compare_methods(fit4)
+methods5 <- compare_methods(fit5)
+
+knitr::kable(methods1, digits = 4, caption = "M1")
+knitr::kable(methods2, digits = 4, caption = "M2")
+knitr::kable(methods3, digits = 4, caption = "M3")
+knitr::kable(methods4, digits = 4, caption = "M4")
+knitr::kable(methods5, digits = 4, caption = "M5")
+```
+
+The default `parents` method uses only the parents of Y. Since Y has no parents,
+it returns the same probabilities (337/889, 384/889, 168/889) for all customers,
+ignoring their attributes. It is therefore unsuitable for this classification task.
+
+`bayes-lw` uses likelihood-weighted simulation to incorporate the attribute evidence;
+finite simulation causes small changes between runs unless the seed is reset.
+`exact` uses exact inference in the fitted discrete network and has no Monte Carlo
+approximation error. All remaining comparisons use `exact`.
+
+The ordinary networks created with `model2network()` allow this method comparison.
+The specialized `naive.bayes()` classifier used in B2 has its own prediction method.
+
+##### Exact probabilities and predicted classes
+
+This function selects the largest probability in each row. If classes are tied within numerical tolerance, it chooses A before B before C.
+
+<div class="table-scroll">
+
+```{r b4-exact}
+get_results <- function(fitted_model, new_data) {
+
+  prediction <- predict(
+    fitted_model, node = "Y", data = new_data,
+    method = "exact", prob = TRUE
+  )
+
+  probabilities <- t(
+    attr(prediction, "prob")[c("A", "B", "C"), , drop = FALSE]
+  )
+
+  predicted_class <- character(nrow(new_data))
+  classes <- c("A", "B", "C")
+
+  for (i in seq_len(nrow(new_data))) {
+    highest <- max(probabilities[i, ])
+
+    # Find classes tied for the highest probability.
+    candidates <- which(probabilities[i, ] >= highest - 1e-12)
+
+    # Choose the first: A, then B, then C.
+    predicted_class[i] <- classes[candidates[1]]
+  }
+
+  result <- data.frame(
+    new_data,
+    probabilities,
+    Predicted = predicted_class
+  )
+
+  return(result)
+}
+
+result1 <- get_results(fit1, profiles)
+result2 <- get_results(fit2, profiles)
+result3 <- get_results(fit3, profiles)
+result4 <- get_results(fit4, profiles)
+result5 <- get_results(fit5, profiles)
+
+# Each cell shows (A, B, C) probabilities and the prediction.
+format_result <- function(result) {
+  sprintf(
+    "(%.4f, %.4f, %.4f) -> %s",
+    result$A, result$B, result$C, result$Predicted
+  )
+}
+
+comparison <- data.frame(
+  profiles,
+  M1 = format_result(result1),
+  M2 = format_result(result2),
+  M3 = format_result(result3),
+  M4 = format_result(result4),
+  M5 = format_result(result5)
+)
+
+knitr::kable(comparison)
+```
+
+</div>
+
+#### B4.2(c) Confusion matrices and accuracy
+
+The five models agree on seven profiles. At high/high/low, M1 gives A and B equal
+probabilities (0.361702 each); our stated tie rule selects A. M5 is nearly tied,
+with P(A)=0.414006 and P(B)=0.416123. M2, M3, and M4 also select B for this profile.
+The differences arise because the models retain different attribute dependencies.
+
+We use the same tie rule when predicting the original observations. These are **in-sample** results.
+
+```{r b4-accuracy}
+# Only attributes are supplied as prediction inputs.
+attributes <- d[, c("X1", "X2", "X3")]
+
+training1 <- get_results(fit1, attributes)
+training2 <- get_results(fit2, attributes)
+training3 <- get_results(fit3, attributes)
+training4 <- get_results(fit4, attributes)
+training5 <- get_results(fit5, attributes)
+
+# Keep all three prediction categories, even if one is never selected.
+pred1 <- factor(training1$Predicted, levels = c("A", "B", "C"))
+pred2 <- factor(training2$Predicted, levels = c("A", "B", "C"))
+pred3 <- factor(training3$Predicted, levels = c("A", "B", "C"))
+pred4 <- factor(training4$Predicted, levels = c("A", "B", "C"))
+pred5 <- factor(training5$Predicted, levels = c("A", "B", "C"))
+
+confusion1 <- table(Actual = d$Y, Predicted = pred1)
+knitr::kable(confusion1, caption = "M1: rows are actual classes; columns are predicted classes")
+confusion2 <- table(Actual = d$Y, Predicted = pred2)
+knitr::kable(confusion2, caption = "M2: rows are actual classes; columns are predicted classes")
+confusion3 <- table(Actual = d$Y, Predicted = pred3)
+knitr::kable(confusion3, caption = "M3: rows are actual classes; columns are predicted classes")
+confusion4 <- table(Actual = d$Y, Predicted = pred4)
+knitr::kable(confusion4, caption = "M4: rows are actual classes; columns are predicted classes")
+confusion5 <- table(Actual = d$Y, Predicted = pred5)
+knitr::kable(confusion5, caption = "M5: rows are actual classes; columns are predicted classes")
+
+accuracy1 <- mean(pred1 == d$Y)
+accuracy2 <- mean(pred2 == d$Y)
+accuracy3 <- mean(pred3 == d$Y)
+accuracy4 <- mean(pred4 == d$Y)
+accuracy5 <- mean(pred5 == d$Y)
+
+accuracy_table <- data.frame(
+  Model = c("M1", "M2", "M3", "M4", "M5"),
+  Accuracy = c(accuracy1, accuracy2, accuracy3, accuracy4, accuracy5)
+)
+
+knitr::kable(accuracy_table, digits = 6)
+```
+
+All models correctly classify 450 of 877 observations (51.31%). M2–M5 have the
+same class predictions. M1 differs only at high/high/low, whose observed class
+counts are A=8, B=8, C=6. Assigning that entire profile to either A or B gives
+eight correct predictions, explaining the identical overall accuracy.
+
+None of the models selects C for any profile, so C has zero recall even though
+its predicted probability is positive. These are in-sample results, not estimates
+of performance on independent new customers.
+
+### B4.3 Comparison by log marginal likelihood
+
+#### Marginal likelihood and posterior model probabilities
+
+The marginal likelihood integrates over parameter uncertainty:
+
+$$
+p(D\mid M)=\int p(D\mid\Theta,M)p(\Theta\mid M)\,d\Theta.
+$$
+
+Under equal prior model probabilities, the posterior model probabilities are
+
+$$
+P(M_g\mid D)=\frac{\exp(\ell_g-\ell_{\max})}
+{\sum_h\exp(\ell_h-\ell_{\max})},\qquad \ell_g=\log p(D\mid M_g).
+$$
+
+Subtracting the maximum log score prevents numerical underflow without changing
+the result. The BDe score uses the same global prior precision of 12.
+
+```{r b4-model-comparison}
+score1 <- score(M1, data = d, type = "bde", iss = 12)
+score2 <- score(M2, data = d, type = "bde", iss = 12)
+score3 <- score(M3, data = d, type = "bde", iss = 12)
+score4 <- score(M4, data = d, type = "bde", iss = 12)
+score5 <- score(M5, data = d, type = "bde", iss = 12)
+
+log_scores <- c(score1, score2, score3, score4, score5)
+
+# Equal model priors cancel when we normalize.
+weights <- exp(log_scores - max(log_scores))
+model_probabilities <- weights / sum(weights)
+
+model_comparison <- data.frame(
+  Model = c("M1", "M2", "M3", "M4", "M5"),
+  Parameters = c(
+    nparams(fit1), nparams(fit2), nparams(fit3),
+    nparams(fit4), nparams(fit5)
+  ),
+  Log_marginal_likelihood = log_scores,
+  Posterior_probability = formatC(
+    model_probabilities, format = "e", digits = 3
+  ),
+  Accuracy = c(accuracy1, accuracy2, accuracy3, accuracy4, accuracy5)
+)
+
+knitr::kable(model_comparison, digits = 6)
+
+# Strength of evidence for M1 over M5, the second-best model
+score1 - score5
+exp(score1 - score5)
+```
+
+#### Verify the contribution of Y by hand
+
+Y has prior $\operatorname{Dir}(4,4,4)$ and counts $(333,380,164)$, giving
+
+$$
+\begin{aligned}
+\log p(D_Y\mid M)
+={}&\log\Gamma(12)-\log\Gamma(889)\\
+&+\log\Gamma(337)+\log\Gamma(384)+\log\Gamma(168)-3\log\Gamma(4).
+\end{aligned}
+$$
+
+The independent local priors and factorized likelihood make the whole-network
+log marginal likelihood the sum of its node contributions.
+
+```{r b4-hand-check}
+# Prior: Dir(4, 4, 4)
+# Counts: (333, 380, 164)
+# Posterior: Dir(337, 384, 168)
+
+manual_Y <- lgamma(12) - lgamma(889) +
+  lgamma(337) + lgamma(384) + lgamma(168) -
+  3 * lgamma(4)
+
+node_scores <- score(
+  M2, data = d, type = "bde", iss = 12, by.node = TRUE
+)
+
+manual_Y
+node_scores["Y"]
+
+# The sum of node contributions equals the whole-network score.
+sum(node_scores)
+score2
+```
+
+Both calculations give approximately **−920.242329** for Y. M1 has the highest
+log marginal likelihood; the log Bayes factor relative to the second-best model,
+M5, is approximately 99.238. Among these five candidates and at alpha=12, M1
+receives essentially all posterior model probability.
+
+The model with the strongest evidence is tied for the highest in-sample accuracy.
+Marginal likelihood assesses the full joint distribution and integrates parameter
+uncertainty, whereas accuracy uses only the largest-probability class. Attribute
+dependence can therefore substantially improve model evidence without changing
+most class predictions.
+
+## Interpretation
+
+Reputation satisfaction is the clearest individual correlate of preferred provider.
+The high-reputation satisfaction rate is 65.00% among customers preferring B,
+compared with 39.04% for A and 31.71% for C. Price and service variety show smaller
+between-provider differences. The strong model evidence for M1 also suggests that
+the joint patterns among attributes matter beyond their individual associations.
+
+For A, the results motivate further investigation of reputation and how price and
+service evaluations combine across customer groups. For C, none of the eight
+profiles makes C the most probable class, despite 164 respondents preferring C.
+The present three binary attributes do not identify a segment in which C dominates;
+additional attributes or more detailed measurements may help explain its appeal.
+
+These are associations in survey data. They do not establish that changing an
+attribute causes a change in provider preference. The 51.31% in-sample accuracy
+and zero recall for C also limit the conclusions about predictive usefulness.
+
+## References
+
+- Assignment 3: Bayesian Networks with bnlearn, R version, Part B.
+- Lecture Set 4: slides 15–24 (DAGs and classification), 26–38 (parameters and updating),
+  and 39–40 (model comparison).
+- [bnlearn documentation](https://www.bnlearn.com/documentation/).
+
+```{r final-checks, include=FALSE}
+stopifnot(abs(manual_Y - unname(node_scores["Y"])) < 1e-8,
+          abs(sum(node_scores) - score2) < 1e-8,
+          max(abs(c(accuracy1, accuracy2, accuracy3, accuracy4, accuracy5) - 450/877)) < 1e-12,
+          abs(sum(model_probabilities) - 1) < 1e-12)
+```

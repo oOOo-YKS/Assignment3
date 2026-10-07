@@ -1,0 +1,80 @@
+##### Class probabilities: Y
+
+The category order is A, B, C.
+
+$$
+\boldsymbol{\theta}_1\mid D
+\sim \operatorname{Dir}(4+333,\;4+380,\;4+164)
+=\operatorname{Dir}(337,\;384,\;168).
+$$
+
+##### X1 conditional on Y
+
+Each vector is ordered low, high.
+
+$$
+\begin{aligned}
+\boldsymbol{\theta}_{2,A}\mid D
+&\sim \operatorname{Dir}(2+203,\;2+130)
+=\operatorname{Dir}(205,\;132),\\
+\boldsymbol{\theta}_{2,B}\mid D
+&\sim \operatorname{Dir}(2+133,\;2+247)
+=\operatorname{Dir}(135,\;249),\\
+\boldsymbol{\theta}_{2,C}\mid D
+&\sim \operatorname{Dir}(2+112,\;2+52)
+=\operatorname{Dir}(114,\;54).
+\end{aligned}
+$$
+
+##### X2 conditional on Y and X1
+
+There are six parent configurations, so each prior parameter
+is $12/(2\times6)=1$.
+
+In the subscripts below, $(A,L)$ means $Y=A$ and
+$X_1=\mathrm{low}$. Each parameter vector describes the
+probabilities of X2 in the order low, high.
+
+$$
+\begin{aligned}
+\boldsymbol{\theta}_{3,(A,L)}\mid D
+&\sim \operatorname{Dir}(1+148,\;1+55)
+=\operatorname{Dir}(149,\;56),\\
+\boldsymbol{\theta}_{3,(A,H)}\mid D
+&\sim \operatorname{Dir}(1+48,\;1+82)
+=\operatorname{Dir}(49,\;83),\\
+\boldsymbol{\theta}_{3,(B,L)}\mid D
+&\sim \operatorname{Dir}(1+116,\;1+17)
+=\operatorname{Dir}(117,\;18),\\
+\boldsymbol{\theta}_{3,(B,H)}\mid D
+&\sim \operatorname{Dir}(1+126,\;1+121)
+=\operatorname{Dir}(127,\;122),\\
+\boldsymbol{\theta}_{3,(C,L)}\mid D
+&\sim \operatorname{Dir}(1+90,\;1+22)
+=\operatorname{Dir}(91,\;23),\\
+\boldsymbol{\theta}_{3,(C,H)}\mid D
+&\sim \operatorname{Dir}(1+14,\;1+38)
+=\operatorname{Dir}(15,\;39).
+\end{aligned}
+$$
+
+##### X3 conditional on Y
+
+Each vector is ordered low, high.
+
+$$
+\begin{aligned}
+\boldsymbol{\theta}_{4,A}\mid D
+&\sim \operatorname{Dir}(2+161,\;2+172)
+=\operatorname{Dir}(163,\;174),\\
+\boldsymbol{\theta}_{4,B}\mid D
+&\sim \operatorname{Dir}(2+174,\;2+206)
+=\operatorname{Dir}(176,\;208),\\
+\boldsymbol{\theta}_{4,C}\mid D
+&\sim \operatorname{Dir}(2+91,\;2+73)
+=\operatorname{Dir}(93,\;75).
+\end{aligned}
+$$
+
+These are all 13 parameter vectors for M3:
+one for Y, three for X1, six for X2, and three for X3.
