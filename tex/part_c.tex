@@ -1,0 +1,54 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{8pt}
+
+\begin{document}
+
+\section*{Part C: Interpretation}
+
+Reputation satisfaction ($X_1$) appears most strongly associated with
+preferred provider. Among respondents who prefer B, 65.0\% report high
+reputation satisfaction, compared with 39.0\% for A and 31.7\% for C.
+The corresponding differences across providers are smaller for price
+satisfaction ($X_2$) and service-variety satisfaction ($X_3$).
+Thus, reputation provides the clearest individual distinction among
+the three preference groups in this sample.
+
+The model comparison also indicates that the attributes retain substantial
+dependence after conditioning on preferred provider. At $\alpha=12$, the
+fully dependent model M1 has the highest log marginal likelihood and
+receives essentially all posterior model probability among the five
+candidates under equal model priors. However, all five models achieve
+the same in-sample accuracy of $450/877\approx51.31\%$ under our fixed
+tie-breaking rule. Their probability estimates differ, but their predicted
+classes are mostly unchanged. For the high/high/low profile, M1 ties
+between A and B; the equal observed counts for these two classes mean
+that consistently choosing either gives the same number of correct
+classifications. Stronger model evidence therefore does not translate
+into higher classification accuracy here.
+
+For provider A, the reputation gap relative to B suggests a useful focus
+for further customer research. A could investigate which aspects of its
+reputation customers value and how reputation interacts with perceptions
+of price and service variety. These results identify a potential area
+for investigation, rather than demonstrating that a reputation campaign
+would increase preference for A.
+
+Provider C has the lowest proportions reporting high reputation and
+service-variety satisfaction. Moreover, none of the five models predicts
+C as the most probable class for any of the eight attribute profiles,
+although 164 respondents prefer C. This suggests that the three binary
+attributes do not adequately identify a segment in which C is the leading
+choice. Collecting additional attributes or more detailed satisfaction
+measures could help explain C's appeal and improve its identification.
+
+These findings describe associations, not causal effects. The analysis
+does not establish that changing an attribute would change provider
+preference. In addition, accuracy was evaluated on the fitting data;
+performance on independent observations remains to be assessed.
+
+\end{document}
