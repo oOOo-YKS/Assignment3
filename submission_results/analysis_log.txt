@@ -295,24 +295,15 @@ M5
 24    exact high high high 0.3135 0.5752 0.1113
 
 ===== b4-exact =====
-    X1   X2   X3                            M1                            M2
-1  low  low  low (0.3975, 0.3450, 0.2574) -> A (0.4240, 0.2862, 0.2898) -> A
-2  low  low high (0.4965, 0.2587, 0.2448) -> A (0.4418, 0.3301, 0.2281) -> A
-3  low high  low (0.5493, 0.2394, 0.2113) -> A (0.4715, 0.2601, 0.2685) -> A
-4  low high high (0.5935, 0.1545, 0.2520) -> A (0.4900, 0.2992, 0.2108) -> A
-5 high  low  low (0.2457, 0.6914, 0.0629) -> B (0.2910, 0.5626, 0.1463) -> B
-6 high  low high (0.2657, 0.6425, 0.0918) -> B (0.2841, 0.6080, 0.1079) -> B
-7 high high  low (0.3617, 0.3617, 0.2766) -> A (0.3335, 0.5269, 0.1397) -> B
-8 high high high (0.3379, 0.5147, 0.1474) -> B (0.3262, 0.5706, 0.1032) -> B
-                             M3                            M4
-1 (0.4093, 0.3046, 0.2861) -> A (0.3962, 0.3447, 0.2591) -> A
-2 (0.4252, 0.3503, 0.2245) -> A (0.5228, 0.2199, 0.2573) -> A
-3 (0.5635, 0.1716, 0.2649) -> A (0.4433, 0.3152, 0.2415) -> A
-4 (0.5909, 0.1993, 0.2098) -> A (0.5702, 0.1960, 0.2338) -> A
-5 (0.2627, 0.6452, 0.0920) -> B (0.2553, 0.6350, 0.1097) -> B
-6 (0.2510, 0.6825, 0.0664) -> B (0.2984, 0.5696, 0.1320) -> B
-7 (0.3412, 0.4753, 0.1835) -> B (0.2949, 0.5995, 0.1055) -> B
-8 (0.3392, 0.5230, 0.1378) -> B (0.3415, 0.5327, 0.1258) -> B
+    X1   X2   X3                            M1                            M2                            M3                            M4
+1  low  low  low (0.3975, 0.3450, 0.2574) -> A (0.4240, 0.2862, 0.2898) -> A (0.4093, 0.3046, 0.2861) -> A (0.3962, 0.3447, 0.2591) -> A
+2  low  low high (0.4965, 0.2587, 0.2448) -> A (0.4418, 0.3301, 0.2281) -> A (0.4252, 0.3503, 0.2245) -> A (0.5228, 0.2199, 0.2573) -> A
+3  low high  low (0.5493, 0.2394, 0.2113) -> A (0.4715, 0.2601, 0.2685) -> A (0.5635, 0.1716, 0.2649) -> A (0.4433, 0.3152, 0.2415) -> A
+4  low high high (0.5935, 0.1545, 0.2520) -> A (0.4900, 0.2992, 0.2108) -> A (0.5909, 0.1993, 0.2098) -> A (0.5702, 0.1960, 0.2338) -> A
+5 high  low  low (0.2457, 0.6914, 0.0629) -> B (0.2910, 0.5626, 0.1463) -> B (0.2627, 0.6452, 0.0920) -> B (0.2553, 0.6350, 0.1097) -> B
+6 high  low high (0.2657, 0.6425, 0.0918) -> B (0.2841, 0.6080, 0.1079) -> B (0.2510, 0.6825, 0.0664) -> B (0.2984, 0.5696, 0.1320) -> B
+7 high high  low (0.3617, 0.3617, 0.2766) -> A (0.3335, 0.5269, 0.1397) -> B (0.3412, 0.4753, 0.1835) -> B (0.2949, 0.5995, 0.1055) -> B
+8 high high high (0.3379, 0.5147, 0.1474) -> B (0.3262, 0.5706, 0.1032) -> B (0.3392, 0.5230, 0.1378) -> B (0.3415, 0.5327, 0.1258) -> B
                              M5
 1 (0.4285, 0.2917, 0.2797) -> A
 2 (0.4429, 0.3454, 0.2117) -> A
@@ -437,11 +428,8 @@ Matrix products: default
   LAPACK version 3.12.1
 
 locale:
-[1] LC_COLLATE=English_United States.utf8 
-[2] LC_CTYPE=English_United States.utf8   
-[3] LC_MONETARY=English_United States.utf8
-[4] LC_NUMERIC=C                          
-[5] LC_TIME=English_United States.utf8    
+[1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252    LC_MONETARY=English_United States.1252
+[4] LC_NUMERIC=C                           LC_TIME=English_United States.1252    
 
 time zone: America/New_York
 tzcode source: internal
@@ -453,12 +441,9 @@ other attached packages:
 [1] bnlearn_5.2.1
 
 loaded via a namespace (and not attached):
- [1] vctrs_0.6.5      cli_3.6.5        rlang_1.1.6      purrr_1.1.0     
- [5] generics_0.1.4   glue_1.8.0       backports_1.5.0  stats4_4.5.1    
- [9] grid_4.5.1       tibble_3.3.0     lifecycle_1.0.4  compiler_4.5.1  
-[13] dplyr_1.1.4      igraph_2.3.3     gRbase_2.0.3     Rcpp_1.1.0      
-[17] pkgconfig_2.0.3  gRain_1.4.6      tidyr_1.3.1      lattice_0.22-7  
-[21] R6_2.6.1         tidyselect_1.2.1 pillar_1.11.1    parallel_4.5.1  
-[25] magrittr_2.0.3   Matrix_1.7-3     broom_1.0.10    
+ [1] vctrs_0.6.5      cli_3.6.5        rlang_1.1.6      purrr_1.1.0      generics_0.1.4   glue_1.8.0       backports_1.5.0 
+ [8] stats4_4.5.1     grid_4.5.1       tibble_3.3.0     lifecycle_1.0.4  compiler_4.5.1   dplyr_1.1.4      igraph_2.3.3    
+[15] gRbase_2.0.3     Rcpp_1.1.0       pkgconfig_2.0.3  gRain_1.4.6      tidyr_1.3.1      lattice_0.22-7   R6_2.6.1        
+[22] tidyselect_1.2.1 pillar_1.11.1    parallel_4.5.1   magrittr_2.0.3   Matrix_1.7-3     broom_1.0.10    
 
 Results saved to: D:/ObsidianNotes/GWU Courses/STAT8289BayecianStatistics/Assignment3/submission_results 

@@ -1,14 +1,3 @@
-# Assignment 3: Bayesian Networks with bnlearn
-# Kai - Part B analysis and supporting Part A demonstrations
-# Input: data/carrier_data.csv (877 original observations).
-# Run: open Assignment3.Rproj, then source("Kai_Assignment3.R").
-# Alternatively: Rscript Kai_Assignment3.R
-# Required packages: bnlearn and gRain.
-# Install once if needed: install.packages(c("bnlearn", "gRain"))
-# No dependency on 00_setup.R, an Rmd file, or saved workspace objects.
-# Output: submission_results/ with tables, figures, and a complete run log.
-# Accuracy is in-sample. Ties within 1e-12 choose A, then B, then C.
-
 run_assignment <- function() {
   # Find data from the project directory or beside the script.
   project_dir <- getwd()
